@@ -1,10 +1,15 @@
 ﻿using Microsoft.Web.WebView2.Core;
 using SaleFarm.Enums;
 using SaleFarm.ViewModels;
+using SaleFarm.WinApi;
 using System;
 using System.Linq;
+using System.Reflection.Metadata;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Interop;
+using System.Xml.Linq;
 
 namespace SaleFarm.Views
 {
@@ -27,6 +32,21 @@ namespace SaleFarm.Views
             webView.NavigationCompleted += NavigationCompleted;
         }
         #endregion
+
+
+
+
+
+        //include SendMessage
+        [DllImport("user32.dll")]
+        public static extern int SendMessage(IntPtr hWnd, int uMsg, int wParam, string lParam);
+
+        //this is a constant indicating the window that we want to send a text message
+        const int WM_SETTEXT = 0X000C;
+
+
+
+
 
         #region NavigationCompleted
         private async void NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
@@ -55,16 +75,50 @@ namespace SaleFarm.Views
                 {
                     return;
                 }
-                await webView.CoreWebView2.ExecuteScriptAsync($" document.getElementById('input_username').value = '{Vm.botAsf[0].Name}' ");
-                await webView.CoreWebView2.ExecuteScriptAsync($" document.getElementById('input_password').value = '{Login2Pass(Vm.botAsf[0].Name)}' ");
 
-                await webView.CoreWebView2.ExecuteScriptAsync($" document.getElementById('remember_login').checked = true ");
-
-                await webView.CoreWebView2.ExecuteScriptAsync($" document.getElementById('login_btn_signin').getElementsByClassName('login_btn')[0].click() ");
+                webView.Focus();
 
                 while (true)
                 {
-                    await Task.Delay(1000);
+                    if (await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelectorAll('input[type=text].newlogindialog_TextInput_2eKVn').length ") != "0")
+                    {
+                        break;
+                    }
+
+                    await Task.Delay(500);
+                }
+
+                await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelector('input[type=text].newlogindialog_TextInput_2eKVn').focus() ");
+                await User32.SendText(Vm.botAsf[0].Name);
+
+                await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelector('input[type=password].newlogindialog_TextInput_2eKVn').focus() ");
+                await User32.SendText(Login2Pass(Vm.botAsf[0].Name));
+
+                // Запомнить меня
+                //await webView.CoreWebView2.ExecuteScriptAsync($" document.getElementById('.newlogindialog_Check_6EoZE').checked = true ");
+
+                await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelector('.newlogindialog_SubmitButton_2QgFE').click(); ");
+
+                while (true)
+                {
+                    if (await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelectorAll('div.newlogindialog_SegmentedCharacterInput_1kJ6q').length ") != "0")
+                    {
+                        break;
+                    }
+
+                    await Task.Delay(500);
+                }
+
+                await User32.SendText(await Vm.GetToken());
+
+                return;
+
+
+                while (true)
+                {
+
+                    await Task.Delay(5000);
+                   
 
                     var tmpLogin2FA = await webView.CoreWebView2.ExecuteScriptAsync($" document.getElementById('login_twofactorauth_message_entercode_accountname').value ");
                     if (!string.IsNullOrEmpty(tmpLogin2FA))
@@ -77,11 +131,15 @@ namespace SaleFarm.Views
                             if (fa2Token != fa2)
                             {
                                 fa2 = fa2Token;
-                                await webView.CoreWebView2.ExecuteScriptAsync($" document.getElementById('twofactorcode_entry').value = '{fa2}' ");
 
+                                await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelector('.newlogindialog_PrimaryHeader_39uMK').innerText = '{fa2}' ");
                                 await Task.Delay(2000);
 
-                                await webView.CoreWebView2.ExecuteScriptAsync($" document.getElementById('login_twofactorauth_buttonset_entercode').getElementsByClassName('auth_button leftbtn')[0].click() ");
+                                //await webView.CoreWebView2.ExecuteScriptAsync($" document.getElementById('twofactorcode_entry').value = '{fa2}' ");
+
+                                //await Task.Delay(2000);
+
+                                //await webView.CoreWebView2.ExecuteScriptAsync($" document.getElementById('login_twofactorauth_buttonset_entercode').getElementsByClassName('auth_button leftbtn')[0].click() ");
                             }
                             else
                             {
@@ -149,13 +207,28 @@ namespace SaleFarm.Views
                     await webView.CoreWebView2.ExecuteScriptAsync($" document.getElementById('remember').checked = true ");
                     await webView.CoreWebView2.ExecuteScriptAsync($" document.getElementsByClassName('btn_grey_white_innerfade')[0].click() ");
                 }
+                else if (await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelectorAll('div#queueActionsCtn i.arrow_next').length ") != "0")
+                {
+                    webView.CoreWebView2.Navigate("https://store.steampowered.com/");
+
+                    while (true)
+                    {
+                        if (await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelectorAll('#refresh_queue_btn').length ") != "0")
+                        {
+                            await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelector('#refresh_queue_btn > span').click() ");
+
+                            break;
+                        }
+
+                        await Task.Delay(500);
+                    }
+                }                    
                 else
                 {
-
                     await webView.CoreWebView2.ExecuteScriptAsync($" document.cookie='bGameHighlightAutoplayDisabled=true;path=/' ");
-
                     await webView.CoreWebView2.ExecuteScriptAsync($" document.getElementsByClassName('btn_next_in_queue')[0].click() ");
                 }
+                
 
                 return;
             }
