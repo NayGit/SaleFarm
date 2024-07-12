@@ -36,6 +36,14 @@
             </GroupBox>
 
             <Button Content="Go" Command="{Binding CommandGo}" />
+
+            <ListView ItemsSource="{Binding BotAsf}">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn DisplayMemberBinding="{Binding Name}" />
+                    </GridView>
+                </ListView.View>
+            </ListView>
         </StackPanel>
 
 

@@ -68,10 +68,16 @@ namespace SaleFarm.ViewModels
             }
         }
 
-        public List<BotAsf> botAsf = new();
+        private List<BotAsf> botAsf1 = new();
+        public List<BotAsf> BotAsf
+        {
+            get { return botAsf1; }
+            set { SetProperty(ref botAsf1, value); }
+        }
+
         public async Task<string> GetToken()
         {
-            return await AsfHttpService.GetBotTokenAsync(UrlAsf, botAsf[0]);
+            return await AsfHttpService.GetBotTokenAsync(UrlAsf, BotAsf[0]);
         }
         #endregion
 
@@ -94,8 +100,8 @@ namespace SaleFarm.ViewModels
                 {
                     try
                     {
-                        botAsf = await AsfHttpService.GetBotsAsfAsync(UrlAsf);
-                        if (botAsf.Count < 1)
+                        BotAsf = await AsfHttpService.GetBotsAsfAsync(UrlAsf);
+                        if (BotAsf.Count < 1)
                         {
                             Stop("Error: Bots < 1");
                             return;
@@ -174,9 +180,9 @@ namespace SaleFarm.ViewModels
 
                             await Task.Delay(2500, CancellationToken.None);
 
-                            if (botAsf.Count > 0)
+                            if (BotAsf.Count > 0)
                             {
-                                botAsf.RemoveAt(0);
+                                BotAsf.RemoveAt(0);
                                 goFlagsCopy = goFlagsStatus;
                             }
                             else

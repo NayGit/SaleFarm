@@ -1,15 +1,9 @@
 ﻿using Microsoft.Web.WebView2.Core;
 using SaleFarm.Enums;
 using SaleFarm.ViewModels;
-using SaleFarm.WinApi;
 using System;
-using System.Linq;
-using System.Reflection.Metadata;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Interop;
-using System.Xml.Linq;
 
 namespace SaleFarm.Views
 {
@@ -34,15 +28,6 @@ namespace SaleFarm.Views
         #endregion
 
 
-
-
-
-        //include SendMessage
-        [DllImport("user32.dll")]
-        public static extern int SendMessage(IntPtr hWnd, int uMsg, int wParam, string lParam);
-
-        //this is a constant indicating the window that we want to send a text message
-        const int WM_SETTEXT = 0X000C;
 
 
 
@@ -71,7 +56,7 @@ namespace SaleFarm.Views
             #region /login/
             else if (webView.Source.ToString().Contains("/login/") && Vm.ModeStatus != ModeStatus.None)
             {
-                if (Vm.botAsf.Count < 1)
+                if (Vm.BotAsf.Count < 1)
                 {
                     return;
                 }
@@ -80,7 +65,7 @@ namespace SaleFarm.Views
 
                 while (true)
                 {
-                    if (await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelectorAll('input[type=text].newlogindialog_TextInput_2eKVn').length ") != "0")
+                    if (await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelectorAll('input[type=text]._2eKVn6g5Yysx9JmutQe7WV').length ") != "0")
                     {
                         break;
                     }
@@ -88,20 +73,21 @@ namespace SaleFarm.Views
                     await Task.Delay(500);
                 }
 
-                await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelector('input[type=text].newlogindialog_TextInput_2eKVn').focus() ");
-                await User32.SendText(Vm.botAsf[0].Name);
+                await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelector('input[type=text]._2eKVn6g5Yysx9JmutQe7WV').focus() ");  //Логин
+                await webView.CoreWebView2.ExecuteScriptAsync($" document.execCommand('insertHTML', false, '{Vm.BotAsf[0].Name}') ");
 
-                await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelector('input[type=password].newlogindialog_TextInput_2eKVn').focus() ");
-                await User32.SendText(Login2Pass(Vm.botAsf[0].Name));
+                await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelector('input[type=password]').focus() ");  //Пароль .newlogindialog_TextInput_2eKVn
+                await webView.CoreWebView2.ExecuteScriptAsync($" document.execCommand('insertHTML', false, '{Login2Pass(Vm.BotAsf[0].Name)}') ");
 
                 // Запомнить меня
                 //await webView.CoreWebView2.ExecuteScriptAsync($" document.getElementById('.newlogindialog_Check_6EoZE').checked = true ");
 
-                await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelector('.newlogindialog_SubmitButton_2QgFE').click(); ");
+                await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelector('._2QgFEj17t677s3x299PNJQ').click(); ");  //Button -> войти
 
                 while (true)
                 {
-                    if (await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelectorAll('div.newlogindialog_SegmentedCharacterInput_1kJ6q').length ") != "0")
+                    //if (await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelectorAll('div.newlogindialog_SegmentedCharacterInput_1kJ6q').length ") != "0")
+                    if (await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelectorAll('div.Panel.Focusable').length ") != "0")
                     {
                         break;
                     }
@@ -109,7 +95,19 @@ namespace SaleFarm.Views
                     await Task.Delay(500);
                 }
 
-                await User32.SendText(await Vm.GetToken());
+                string fa2Token = await Vm.GetToken();
+                for (int i = 0; i < fa2Token.Length; i++)
+                {
+                    await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelectorAll('div.Panel.Focusable')[{i}].focus() ");
+                    await webView.CoreWebView2.ExecuteScriptAsync($" document.execCommand('insertHTML', false, '{fa2Token[i]}') ");
+                }
+                //foreach (char c in await Vm.GetToken())
+                //{
+                //    await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelectorAll('div.Panel.Focusable')[0].focus() ");
+                //    await webView.CoreWebView2.ExecuteScriptAsync($" document.execCommand('insertHTML', false, '{c}') ");
+                //}
+
+                await Task.Delay(500);
 
                 return;
 
@@ -127,10 +125,10 @@ namespace SaleFarm.Views
 
                         while (webView.Source.ToString().Contains("/login/"))
                         {
-                            string fa2Token = await Vm.GetToken();
-                            if (fa2Token != fa2)
+                            string fa2Token2 = await Vm.GetToken();
+                            if (fa2Token2 != fa2)
                             {
-                                fa2 = fa2Token;
+                                fa2 = fa2Token2;
 
                                 await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelector('.newlogindialog_PrimaryHeader_39uMK').innerText = '{fa2}' ");
                                 await Task.Delay(2000);
@@ -158,10 +156,15 @@ namespace SaleFarm.Views
             #region /explore
             else if (webView.Source.ToString().Contains("/explore") && Vm.IsExplore)
             {
+                //newmodal
+
+
                 var checkContinue = await webView.CoreWebView2.ExecuteScriptAsync($" document.getElementById('discovery_queue_ctn').style.display ");
                 checkContinue = DelReplace(checkContinue);
 
                 var checkFinish = await webView.CoreWebView2.ExecuteScriptAsync($" document.getElementsByClassName('subtext')[0].innerText ");
+
+                await Task.Delay(2000);
 
                 if (!string.IsNullOrEmpty(checkContinue) && checkContinue.ToLower() == "block")
                 {
@@ -171,7 +174,8 @@ namespace SaleFarm.Views
                 }
                 else if (!string.IsNullOrEmpty(checkFinish) && (checkFinish.ToLower().Contains("завтра") || checkFinish.ToLower().Contains("tomorrow")))
                 {
-                    await webView.CoreWebView2.ExecuteScriptAsync($" console.log('Logout()') ");
+                    //await webView.CoreWebView2.ExecuteScriptAsync($" console.log('Logout()') ");
+                    await webView.CoreWebView2.ExecuteScriptAsync($" javascript:Logout(); ");
 
                     await Task.Delay(2000);
 
@@ -184,6 +188,12 @@ namespace SaleFarm.Views
                     await Task.Delay(2000);
 
                     await webView.CoreWebView2.ExecuteScriptAsync($" document.getElementById('refresh_queue_btn').click() ");
+
+                    await Task.Delay(5000);
+                    if (/*webView.Source.ToString().Contains("/explore") && */await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelectorAll('div.newmodal').length ") != "0")
+                    {
+                        webView.CoreWebView2.Reload();
+                    }
                 }
 
                 return;
@@ -222,7 +232,12 @@ namespace SaleFarm.Views
 
                         await Task.Delay(500);
                     }
-                }                    
+                }
+                else if (await webView.CoreWebView2.ExecuteScriptAsync($" document.querySelectorAll('div#headline').length ") != "0") //Ошибка Рисунки Error
+                {
+                    await Task.Delay(500);
+                    webView.CoreWebView2.Reload();
+                }
                 else
                 {
                     await webView.CoreWebView2.ExecuteScriptAsync($" document.cookie='bGameHighlightAutoplayDisabled=true;path=/' ");
